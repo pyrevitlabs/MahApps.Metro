@@ -7,12 +7,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
@@ -1279,16 +1279,6 @@ namespace pyRevitLabs.MahAppsMetro.Controls
             return new MetroWindowAutomationPeer(this);
         }
 
-        protected internal IntPtr CriticalHandle
-        {
-            get
-            {
-                this.VerifyAccess();
-                var value = typeof(Window).GetProperty("CriticalHandle", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(this, new object[0]) ?? IntPtr.Zero;
-                return (IntPtr)value;
-            }
-        }
-
         private void ClearWindowEvents()
         {
             // clear all event handlers first:
@@ -1470,7 +1460,6 @@ namespace pyRevitLabs.MahAppsMetro.Controls
                 window.StateChanged += windowOnStateChanged;
             }
 
-            var criticalHandle = window.CriticalHandle;
 #pragma warning disable 618
             // these lines are from DragMove
             // NativeMethods.SendMessage(criticalHandle, WM.SYSCOMMAND, (IntPtr)SC.MOUSEMOVE, IntPtr.Zero);
@@ -1479,7 +1468,8 @@ namespace pyRevitLabs.MahAppsMetro.Controls
             var wpfPoint = window.PointToScreen(Mouse.GetPosition(window));
             var x = (int)wpfPoint.X;
             var y = (int)wpfPoint.Y;
-            NativeMethods.SendMessage(criticalHandle, WM.NCLBUTTONDOWN, (IntPtr)HT.CAPTION, new IntPtr(x | (y << 16)));
+            var windowHandle = new WindowInteropHelper(window).EnsureHandle();
+            NativeMethods.SendMessage(windowHandle, WM.NCLBUTTONDOWN, (IntPtr)HT.CAPTION, new IntPtr(x | (y << 16)));
 #pragma warning restore 618
         }
 
